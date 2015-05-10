@@ -24,16 +24,40 @@
 #define BTN_MOINS 7
 #define LED 13
 #define PWM 9
+/** analog input pin for shunt resistor voltae read */
+#define IN_VOLT 0
+/** shunt resistor value R9 (ohm) */
+#define SHUNT 10
+
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 
 /* software constants */
 // increment of pwm duty cycle
 #define DC_INC 1
+/* length of read amp value averaging */
+#define AVER_LENGTH 10
 
 /* global variables */
-uint8_t dutyCycle = 0; /**< PWM duty cycle 0->0xFF */
+uint8_t  dutyCycle = 0; /**< PWM duty cycle 0->0xFF */
+uint16_t setAmp = 0;    /**< current set value (mA) */
+uint16_t readAmp = 0;   /**< current read value (mA) */
+uint16_t tReadAmp[AVER_LENGTH ];
+uint8_t itReadAmp = 0;
 
+void addReadAmp(uint16_t val) {
+   tReadAmp[itReadAmp] = val;
+   itReadAmp = (itReadAmp + 1) % AVER_LENGTH;
+} // addReadAmp
+
+uint16_t getReadAmp(void) {
+   uint16_t tmp = 0;
+   uint8_t i;
+   for (i=0; i< AVER_LENGTH;i++) {
+      tmp += tReadAmp[i];
+   }
+   return tmp / AVER_LENGTH;
+} // getReadAmp
 
 /** Init the hardware
  */
@@ -51,7 +75,8 @@ void setup (void) {
    lcd.begin(16, 2);
    lcd.print("Dummy Load");
    lcd.setCursor(0, 1);
-   lcd.print("DC: 0x00");
+   lcd.print("dinask.eu");
+   delay (2000);
 } // setup()
 
 /** Display the current duty cycle
@@ -68,19 +93,48 @@ void printDC (uint8_t dc) {
    lcd.print(dc, HEX);
 } // printDC
 
+/** display the current screen
+ */
+void printScreen (void) {
+      lcd.clear();
+      lcd.setCursor (0, 0);
+      lcd.print ("SET:  ");
+      lcd.print (setAmp);
+      lcd.print (" mA");
+      lcd.setCursor (0, 1);
+      lcd.print ("READ: ");
+      lcd.print (readAmp);
+      lcd.print (" mA");
+}//printScreen
+
 /** main()
  */
 void loop (void) {
-  analogWrite(PWM, dutyCycle);
+   uint16_t tmp = 0;
 
-  if (digitalRead(BTN_PLUS) == HIGH) {
-   dutyCycle += DC_INC;
-   printDC (dutyCycle);
-  }
-  if (digitalRead(BTN_MOINS) == HIGH) {
-   dutyCycle -= DC_INC;
-   printDC (dutyCycle);
-  }
-  delay(50);
+   analogWrite(PWM, dutyCycle);
+
+   if (digitalRead(BTN_PLUS) == HIGH) {
+      if (dutyCycle >= (0xFF - DC_INC)) {
+         dutyCycle = 0xFF;
+      } else {
+         dutyCycle += DC_INC;
+      }
+   }
+   if (digitalRead(BTN_MOINS) == HIGH) {
+      if (dutyCycle <= (0 + DC_INC)) {
+         dutyCycle = 0;
+      } else {
+         dutyCycle -= DC_INC;
+      }
+   }
+
+   setAmp = map (dutyCycle, 0, 0xFF, 0, 10000 / SHUNT);
+   tmp = analogRead (IN_VOLT);
+   addReadAmp ( map (tmp, 0, 1023, 0, 10000 / SHUNT) );
+   readAmp = getReadAmp();
+   printScreen();
+
+   delay(50);
 } // loop()
 
