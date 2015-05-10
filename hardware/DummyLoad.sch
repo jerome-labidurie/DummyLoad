@@ -349,13 +349,13 @@ Text Notes 7400 1600 0    60   ~ 0
 $Comp
 L LM358 U3
 U 1 1 554E9667
-P 8500 1750
-F 0 "U3" H 8450 1950 60  0000 L CNN
-F 1 "LM358" H 8450 1500 60  0000 L CNN
-F 2 "" H 8500 1750 60  0000 C CNN
-F 3 "" H 8500 1750 60  0000 C CNN
-	1    8500 1750
-	1    0    0    -1  
+P 7150 3750
+F 0 "U3" H 7100 3950 60  0000 L CNN
+F 1 "LM358" H 7100 3500 60  0000 L CNN
+F 2 "" H 7150 3750 60  0000 C CNN
+F 3 "" H 7150 3750 60  0000 C CNN
+	1    7150 3750
+	-1   0    0    -1  
 $EndComp
 Wire Wire Line
 	7200 1650 8000 1650
@@ -595,21 +595,21 @@ Wire Wire Line
 	9250 5900 9450 5900
 Wire Wire Line
 	9450 5900 9450 5950
-Text Notes 8500 5750 0    60   ~ 0
-12V\nInput
+Text Notes 8500 5750 2    60   ~ 0
+12V\nPower Input
 Text Notes 10250 2300 0    60   ~ 0
-Device Under Test\nInput
+Device Under Test\nLoad
 NoConn ~ 2300 1250
 $Comp
 L LM358 U2
 U 2 1 554EC832
-P 7150 3750
-F 0 "U2" H 7100 3950 60  0000 L CNN
-F 1 "LM358" H 7100 3500 60  0000 L CNN
-F 2 "" H 7150 3750 60  0000 C CNN
-F 3 "" H 7150 3750 60  0000 C CNN
-	2    7150 3750
-	-1   0    0    -1  
+P 8500 1750
+F 0 "U2" H 8450 1950 60  0000 L CNN
+F 1 "LM358" H 8450 1500 60  0000 L CNN
+F 2 "" H 8500 1750 60  0000 C CNN
+F 3 "" H 8500 1750 60  0000 C CNN
+	2    8500 1750
+	1    0    0    -1  
 $EndComp
 $Comp
 L R R7
@@ -645,7 +645,7 @@ F 3 "" H 6150 4250 60  0000 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	6150 3750 5750 3750
+	5350 3750 6150 3750
 Wire Wire Line
 	6650 3750 6650 4350
 Wire Wire Line
@@ -683,7 +683,7 @@ Text Notes 7950 3600 0    60   ~ 0
 0-10V
 Text Notes 5950 3700 0    60   ~ 0
 0-5V
-Text Label 5750 3750 2    60   ~ 0
+Text Label 5350 3750 2    60   ~ 0
 V_SENSE
 Text Label 1450 2200 2    60   ~ 0
 V_SENSE
@@ -731,4 +731,20 @@ Text Notes 8600 2500 0    60   Italic 0
 Comparator
 Text Notes 3800 4850 0    60   Italic 0
 Constant Current Load
+$Comp
+L LM358 U3
+U 2 1 554F8726
+P 10200 4300
+F 0 "U3" H 10150 4500 60  0000 L CNN
+F 1 "LM358" H 10150 4050 60  0000 L CNN
+F 2 "" H 10200 4300 60  0000 C CNN
+F 3 "" H 10200 4300 60  0000 C CNN
+	2    10200 4300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	9700 4200 9700 4400
+NoConn ~ 10100 3900
+NoConn ~ 10700 4300
+NoConn ~ 10100 4700
 $EndSCHEMATC

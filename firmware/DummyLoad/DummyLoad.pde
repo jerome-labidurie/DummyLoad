@@ -117,7 +117,7 @@ void printScreen (void) {
    lcd.print (readAmp);
    lcd.print (" mA");
    lcd.setCursor (14, 1);
-   lcd.print ((char)223);
+   lcd.print ((char)223); // °
    lcd.print ("C");
 }//printScreen
 
