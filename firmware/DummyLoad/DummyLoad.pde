@@ -43,6 +43,8 @@ LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 #define REPEAT_TIMER 20
 // serial command line max length
 #define LINE_LEN 20
+// timer to get new internal temperature (ms)
+#define TEMP_TIMER 5000
 
 /* global variables */
 uint8_t  dutyCycle = 0; /**< PWM duty cycle 0->0xFF */
@@ -58,15 +60,23 @@ long lastMoinsTime = 0;       /**< last time minus btn was pressed */
 uint8_t prevMoinsState = LOW; /**< previous button state */
 uint8_t currMoinsState = LOW; /**< current button state */
 
+long lastTemp = 0;   /**< last time internal temp as been read */
+double currTemperature = 0; /** current internal temperature */
+
 char line[LINE_LEN]; /**< serial command line */
 
+/****************************************************************************/
 
-
+/** add new read value in circular average array
+ * @param val the read value
+ */
 void addReadAmp(uint16_t val) {
    tReadAmp[itReadAmp] = val;
    itReadAmp = (itReadAmp + 1) % AVER_LENGTH;
 } // addReadAmp
 
+/** get average of last AVER_LENGTH values
+ */
 uint16_t getReadAmp(void) {
    uint16_t tmp = 0;
    uint8_t i;
@@ -75,26 +85,6 @@ uint16_t getReadAmp(void) {
    }
    return tmp / AVER_LENGTH;
 } // getReadAmp
-
-/** Init the hardware
- */
-void setup (void) {
-   // initialize output pins
-   pinMode(LED, OUTPUT);
-   pinMode(PWM, OUTPUT);
-   // initialize input pins
-   pinMode(BTN_PLUS, INPUT);
-   pinMode(BTN_MOINS, INPUT);
-   // initialize serial
-   Serial.begin(9600);
-   Serial.println("Dummy Load");
-   // initialize LCD
-   lcd.begin(16, 2);
-   lcd.print("Dummy Load");
-   lcd.setCursor(0, 1);
-   lcd.print("dinask.eu");
-   delay (2000);
-} // setup()
 
 /** Display the current duty cycle
  * print to serial and on lcd
@@ -113,16 +103,100 @@ void printDC (uint8_t dc) {
 /** display the current screen
  */
 void printScreen (void) {
-      lcd.clear();
-      lcd.setCursor (0, 0);
-      lcd.print ("SET:  ");
-      lcd.print (setAmp);
-      lcd.print (" mA");
-      lcd.setCursor (0, 1);
-      lcd.print ("READ: ");
-      lcd.print (readAmp);
-      lcd.print (" mA");
+   // line 0
+   lcd.clear();
+   lcd.setCursor (0, 0);
+   lcd.print ("S: ");
+   lcd.print (setAmp);
+   lcd.print (" mA");
+   lcd.setCursor (11, 0);
+   lcd.print (currTemperature);
+   // line 1
+   lcd.setCursor (0, 1);
+   lcd.print ("R: ");
+   lcd.print (readAmp);
+   lcd.print (" mA");
+   lcd.setCursor (14, 1);
+   lcd.print ((char)223);
+   lcd.print ("C");
 }//printScreen
+
+/** increment dutyCycle
+ */
+void incDC (void) {
+   if (dutyCycle >= (0xFF - DC_INC)) {
+      dutyCycle = 0xFF;
+   } else {
+      dutyCycle += DC_INC;
+   }
+}//incDC
+
+/** decrement dutyCycle
+ */
+void decDC (void) {
+   if (dutyCycle <= (0 + DC_INC)) {
+      dutyCycle = 0;
+   } else {
+      dutyCycle -= DC_INC;
+   }
+} // decDC
+
+/** get atmega328 internal temperature
+ * sauce: http://playground.arduino.cc/Main/InternalTemperatureSensor
+ * @return temperature in °C
+ */
+double getTemp(void)
+{
+  unsigned int wADC;
+  double t;
+
+  // The internal temperature has to be used
+  // with the internal reference of 1.1V.
+  // Channel 8 can not be selected with
+  // the analogRead function yet.
+
+  // Set the internal reference and mux.
+  ADMUX = (_BV(REFS1) | _BV(REFS0) | _BV(MUX3));
+  ADCSRA |= _BV(ADEN);  // enable the ADC
+
+  delay(20);            // wait for voltages to become stable.
+
+  ADCSRA |= _BV(ADSC);  // Start the ADC
+
+  // Detect end-of-conversion
+  while (bit_is_set(ADCSRA,ADSC));
+
+  // Reading register "ADCW" takes care of how to read ADCL and ADCH.
+  wADC = ADCW;
+
+  // The offset of 324.31 could be wrong. It is just an indication.
+  t = (wADC - 324.31 ) / 1.22;
+
+  // The returned temperature is in degrees Celcius.
+  return (t);
+}
+
+/****************************************************************************/
+/** Init the hardware
+ */
+void setup (void) {
+   // initialize output pins
+   pinMode(LED, OUTPUT);
+   pinMode(PWM, OUTPUT);
+   // initialize input pins
+   pinMode(BTN_PLUS, INPUT);
+   pinMode(BTN_MOINS, INPUT);
+   // initialize serial
+   Serial.begin(9600);
+   Serial.println("Dummy Load\ndinask.eu");
+   // initialize LCD
+   lcd.begin(16, 2);
+   lcd.print("Dummy Load");
+   lcd.setCursor(0, 1);
+   lcd.print("dinask.eu");
+   delay (2000);
+} // setup()
+
 
 /** main()
  */
@@ -140,22 +214,14 @@ void loop (void) {
          // btn state just changed
          currPlusState = tmp;
          if (currPlusState == HIGH) {
-            if (dutyCycle >= (0xFF - DC_INC)) {
-               dutyCycle = 0xFF;
-            } else {
-               dutyCycle += DC_INC;
-            }
+            incDC();
          } // if (currPlusState == HIGH) {
       } else {
          if ( (millis() - lastPlusTime) > (REPEAT_TIMER * DEBOUNCE_DELAY) ) {
             // btn in same state since (REPEAT_TIMER * DEBOUNCE_DELAY)
             if (currPlusState == HIGH) {
                // new btn press event !
-               if (dutyCycle >= (0xFF - DC_INC)) {
-                  dutyCycle = 0xFF;
-               } else {
-                  dutyCycle += DC_INC;
-               }
+               incDC();
             } // if (currPlusState == HIGH) {
          }
       }
@@ -173,22 +239,14 @@ void loop (void) {
          // btn state just changed
          currMoinsState = tmp;
          if (currMoinsState == HIGH) {
-            if (dutyCycle <= (0 + DC_INC)) {
-               dutyCycle = 0;
-            } else {
-               dutyCycle -= DC_INC;
-            }
+            decDC();
          } // if (currMoinsState == HIGH) {
       } else {
          if ( (millis() - lastMoinsTime) > (REPEAT_TIMER * DEBOUNCE_DELAY) ) {
             // btn in same state since (REPEAT_TIMER * DEBOUNCE_DELAY)
             if (currMoinsState == HIGH) {
                // new btn press event !
-               if (dutyCycle <= (0 + DC_INC)) {
-                  dutyCycle = 0;
-               } else {
-                  dutyCycle -= DC_INC;
-               }
+               decDC();
             } // if (currMoinsState == HIGH) {
          }
       } // else
@@ -197,24 +255,44 @@ void loop (void) {
 
    /* check serial interface commands */
    if (Serial.available() > 0) {
+      memset(line, 0, sizeof(line)); // clear line
       Serial.readBytesUntil ('\n', line, LINE_LEN - 1);
-      line[LINE_LEN-1] = 0;
+      line[LINE_LEN-1] = 0; // make sure string is terminated
+      // check command
       switch (line [0]) {
          case 'D': // display
+         case 'd':
             Serial.print ("S: ");
             Serial.println (setAmp);
             Serial.print ("R: ");
             Serial.println (readAmp);
+            Serial.print ("DC: 0x");
+            Serial.println (dutyCycle, HEX);
             break;
          case 'S': // set current
+         case 's':
             tmp = atol((char*) &line[2]);
             dutyCycle = map (tmp, 0, 10000 / SHUNT, 0, 0xFF);
             break;
+         case '+': // push +
+            incDC();
+            break;
+         case '-': // push -
+            decDC();
+            break;
+         case 'T': // internal temperature
+         case 't':
+            Serial.print ("T: ");
+            Serial.println (currTemperature);
+            break;
          case 'H': // help
          case '?':
+         case 'h':
             Serial.println ("help:");
-            Serial.println (" D: display actual values (mA)");
+            Serial.println (" D: display actual values (mA) & dutyCycle");
             Serial.println (" S xxxx: set current value (mA)");
+            Serial.println (" +,-: push button");
+            Serial.println (" T: display internal temperature");
             Serial.println (" H,?: show help");
             break;
          default:
@@ -222,6 +300,12 @@ void loop (void) {
             Serial.println ((char)line[0]);
       }//switch
    } // Serial.available()
+
+   /* read internal temperature if needed */
+   if (millis() > (lastTemp + TEMP_TIMER) ) {
+      lastTemp = millis();
+      currTemperature = getTemp();
+   }
 
    /* set current value */
    analogWrite(PWM, dutyCycle);
@@ -233,6 +317,6 @@ void loop (void) {
    /* display */
    printScreen();
 
-   delay(10);
+   delay(25);
 } // loop()
 
