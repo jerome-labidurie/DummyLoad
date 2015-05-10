@@ -37,21 +37,24 @@ LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 #define DC_INC 1
 /* length of read amp value averaging */
 #define AVER_LENGTH 10
+// debounce delay (ms)
+#define DEBOUNCE_DELAY 50
+// repeat timer (wait b4 repeating press (number of DEBOUNCE_DELAY)
+#define REPEAT_TIMER 20
 
 /* global variables */
 uint8_t  dutyCycle = 0; /**< PWM duty cycle 0->0xFF */
 uint16_t setAmp = 0;    /**< current set value (mA) */
 uint16_t readAmp = 0;   /**< current read value (mA) */
-uint16_t tReadAmp[AVER_LENGTH ];
-uint8_t itReadAmp = 0;
+uint16_t tReadAmp[AVER_LENGTH]; /**< averaging array of currebnt read values */
+uint8_t itReadAmp = 0;          /**< actual index in previous array */
 
-long lastPlusTime = 0; /**< last time plus btn was pressed */
-uint8_t prevPlusState = LOW;
-uint8_t currPlusState = LOW;
-long lastMoinsTime = 0; /**< last time minus btn was pressed */
-uint8_t prevMoinsState = LOW;
-uint8_t currMoinsState = LOW;
-long debounceDelay = 50; /**< debounce time (ms) */
+long lastPlusTime = 0;        /**< last time plus btn was pressed */
+uint8_t prevPlusState = LOW;  /**< previous button state */
+uint8_t currPlusState = LOW;  /**< current button state */
+long lastMoinsTime = 0;       /**< last time minus btn was pressed */
+uint8_t prevMoinsState = LOW; /**< previous button state */
+uint8_t currMoinsState = LOW; /**< current button state */
 
 
 void addReadAmp(uint16_t val) {
@@ -126,8 +129,10 @@ void loop (void) {
    if (tmp != prevPlusState) {
       lastPlusTime = millis();
    }
-   if ( (millis() - lastPlusTime) > debounceDelay ) {
+   if ( (millis() - lastPlusTime) > DEBOUNCE_DELAY ) {
+      // last state change for btn is > DEBOUNCE_DELAY
       if (tmp != currPlusState) {
+         // btn state just changed
          currPlusState = tmp;
          if (currPlusState == HIGH) {
             Serial.println("plus");
@@ -136,6 +141,19 @@ void loop (void) {
             } else {
                dutyCycle += DC_INC;
             }
+         } // if (currPlusState == HIGH) {
+      } else {
+         if ( (millis() - lastPlusTime) > (REPEAT_TIMER * DEBOUNCE_DELAY) ) {
+            // btn in same state since (REPEAT_TIMER * DEBOUNCE_DELAY)
+            if (currPlusState == HIGH) {
+               // new btn press event !
+               Serial.println("plus");
+               if (dutyCycle >= (0xFF - DC_INC)) {
+                  dutyCycle = 0xFF;
+               } else {
+                  dutyCycle += DC_INC;
+               }
+            } // if (currPlusState == HIGH) {
          }
       }
    }
@@ -146,8 +164,10 @@ void loop (void) {
    if (tmp != prevMoinsState) {
       lastMoinsTime = millis();
    }
-   if ( (millis() - lastMoinsTime) > debounceDelay ) {
+   if ( (millis() - lastMoinsTime) > DEBOUNCE_DELAY ) {
+      // last state change for btn is > DEBOUNCE_DELAY
       if (tmp != currMoinsState) {
+         // btn state just changed
          currMoinsState = tmp;
          if (currMoinsState == HIGH) {
             Serial.println("moins");
@@ -156,8 +176,21 @@ void loop (void) {
             } else {
                dutyCycle -= DC_INC;
             }
+         } // if (currMoinsState == HIGH) {
+      } else {
+         if ( (millis() - lastMoinsTime) > (REPEAT_TIMER * DEBOUNCE_DELAY) ) {
+            // btn in same state since (REPEAT_TIMER * DEBOUNCE_DELAY)
+            if (currMoinsState == HIGH) {
+               // new btn press event !
+               Serial.println("moins");
+               if (dutyCycle <= (0 + DC_INC)) {
+                  dutyCycle = 0;
+               } else {
+                  dutyCycle -= DC_INC;
+               }
+            } // if (currMoinsState == HIGH) {
          }
-      }
+      } // else
    }
    prevMoinsState = tmp;
 
