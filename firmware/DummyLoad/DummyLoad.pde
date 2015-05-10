@@ -45,6 +45,15 @@ uint16_t readAmp = 0;   /**< current read value (mA) */
 uint16_t tReadAmp[AVER_LENGTH ];
 uint8_t itReadAmp = 0;
 
+long lastPlusTime = 0; /**< last time plus btn was pressed */
+uint8_t prevPlusState = LOW;
+uint8_t currPlusState = LOW;
+long lastMoinsTime = 0; /**< last time minus btn was pressed */
+uint8_t prevMoinsState = LOW;
+uint8_t currMoinsState = LOW;
+long debounceDelay = 50; /**< debounce time (ms) */
+
+
 void addReadAmp(uint16_t val) {
    tReadAmp[itReadAmp] = val;
    itReadAmp = (itReadAmp + 1) % AVER_LENGTH;
@@ -112,29 +121,56 @@ void printScreen (void) {
 void loop (void) {
    uint16_t tmp = 0;
 
+   /* check plus btn press */
+   tmp = digitalRead(BTN_PLUS);
+   if (tmp != prevPlusState) {
+      lastPlusTime = millis();
+   }
+   if ( (millis() - lastPlusTime) > debounceDelay ) {
+      if (tmp != currPlusState) {
+         currPlusState = tmp;
+         if (currPlusState == HIGH) {
+            Serial.println("plus");
+            if (dutyCycle >= (0xFF - DC_INC)) {
+               dutyCycle = 0xFF;
+            } else {
+               dutyCycle += DC_INC;
+            }
+         }
+      }
+   }
+   prevPlusState = tmp;
+
+   /* check minus btn press */
+   tmp = digitalRead(BTN_MOINS);
+   if (tmp != prevMoinsState) {
+      lastMoinsTime = millis();
+   }
+   if ( (millis() - lastMoinsTime) > debounceDelay ) {
+      if (tmp != currMoinsState) {
+         currMoinsState = tmp;
+         if (currMoinsState == HIGH) {
+            Serial.println("moins");
+            if (dutyCycle <= (0 + DC_INC)) {
+               dutyCycle = 0;
+            } else {
+               dutyCycle -= DC_INC;
+            }
+         }
+      }
+   }
+   prevMoinsState = tmp;
+
+   /* set current value */
    analogWrite(PWM, dutyCycle);
-
-   if (digitalRead(BTN_PLUS) == HIGH) {
-      if (dutyCycle >= (0xFF - DC_INC)) {
-         dutyCycle = 0xFF;
-      } else {
-         dutyCycle += DC_INC;
-      }
-   }
-   if (digitalRead(BTN_MOINS) == HIGH) {
-      if (dutyCycle <= (0 + DC_INC)) {
-         dutyCycle = 0;
-      } else {
-         dutyCycle -= DC_INC;
-      }
-   }
-
    setAmp = map (dutyCycle, 0, 0xFF, 0, 10000 / SHUNT);
+   /* read actual current value */
    tmp = analogRead (IN_VOLT);
    addReadAmp ( map (tmp, 0, 1023, 0, 10000 / SHUNT) );
    readAmp = getReadAmp();
+   /* display */
    printScreen();
 
-   delay(50);
+   delay(10);
 } // loop()
 
