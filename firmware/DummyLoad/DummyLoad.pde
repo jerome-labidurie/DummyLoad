@@ -41,6 +41,8 @@ LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 #define DEBOUNCE_DELAY 50
 // repeat timer (wait b4 repeating press (number of DEBOUNCE_DELAY)
 #define REPEAT_TIMER 20
+// serial command line max length
+#define LINE_LEN 20
 
 /* global variables */
 uint8_t  dutyCycle = 0; /**< PWM duty cycle 0->0xFF */
@@ -55,6 +57,9 @@ uint8_t currPlusState = LOW;  /**< current button state */
 long lastMoinsTime = 0;       /**< last time minus btn was pressed */
 uint8_t prevMoinsState = LOW; /**< previous button state */
 uint8_t currMoinsState = LOW; /**< current button state */
+
+char line[LINE_LEN]; /**< serial command line */
+
 
 
 void addReadAmp(uint16_t val) {
@@ -135,7 +140,6 @@ void loop (void) {
          // btn state just changed
          currPlusState = tmp;
          if (currPlusState == HIGH) {
-            Serial.println("plus");
             if (dutyCycle >= (0xFF - DC_INC)) {
                dutyCycle = 0xFF;
             } else {
@@ -147,7 +151,6 @@ void loop (void) {
             // btn in same state since (REPEAT_TIMER * DEBOUNCE_DELAY)
             if (currPlusState == HIGH) {
                // new btn press event !
-               Serial.println("plus");
                if (dutyCycle >= (0xFF - DC_INC)) {
                   dutyCycle = 0xFF;
                } else {
@@ -170,7 +173,6 @@ void loop (void) {
          // btn state just changed
          currMoinsState = tmp;
          if (currMoinsState == HIGH) {
-            Serial.println("moins");
             if (dutyCycle <= (0 + DC_INC)) {
                dutyCycle = 0;
             } else {
@@ -182,7 +184,6 @@ void loop (void) {
             // btn in same state since (REPEAT_TIMER * DEBOUNCE_DELAY)
             if (currMoinsState == HIGH) {
                // new btn press event !
-               Serial.println("moins");
                if (dutyCycle <= (0 + DC_INC)) {
                   dutyCycle = 0;
                } else {
@@ -193,6 +194,34 @@ void loop (void) {
       } // else
    }
    prevMoinsState = tmp;
+
+   /* check serial interface commands */
+   if (Serial.available() > 0) {
+      Serial.readBytesUntil ('\n', line, LINE_LEN - 1);
+      line[LINE_LEN-1] = 0;
+      switch (line [0]) {
+         case 'D': // display
+            Serial.print ("S: ");
+            Serial.println (setAmp);
+            Serial.print ("R: ");
+            Serial.println (readAmp);
+            break;
+         case 'S': // set current
+            tmp = atol((char*) &line[2]);
+            dutyCycle = map (tmp, 0, 10000 / SHUNT, 0, 0xFF);
+            break;
+         case 'H': // help
+         case '?':
+            Serial.println ("help:");
+            Serial.println (" D: display actual values (mA)");
+            Serial.println (" S xxxx: set current value (mA)");
+            Serial.println (" H,?: show help");
+            break;
+         default:
+            Serial.print ("E: unknown command: ");
+            Serial.println ((char)line[0]);
+      }//switch
+   } // Serial.available()
 
    /* set current value */
    analogWrite(PWM, dutyCycle);
