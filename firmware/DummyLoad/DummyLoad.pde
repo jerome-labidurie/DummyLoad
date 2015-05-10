@@ -16,6 +16,8 @@
  * along with DummyLoad. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define VERSION "v1.0"
+
 // LCD library
 #include <LiquidCrystal.h>
 
@@ -181,19 +183,21 @@ double getTemp(void)
  */
 void setup (void) {
    // initialize output pins
-   pinMode(LED, OUTPUT);
-   pinMode(PWM, OUTPUT);
+   pinMode (LED, OUTPUT);
+   pinMode (PWM, OUTPUT);
    // initialize input pins
-   pinMode(BTN_PLUS, INPUT);
-   pinMode(BTN_MOINS, INPUT);
+   pinMode (BTN_PLUS, INPUT);
+   pinMode (BTN_MOINS, INPUT);
    // initialize serial
-   Serial.begin(9600);
-   Serial.println("Dummy Load\ndinask.eu");
+   Serial.begin (9600);
+   Serial.println ("Dummy Load\ndinask.eu");
+   Serial.println (VERSION);
    // initialize LCD
-   lcd.begin(16, 2);
-   lcd.print("Dummy Load");
-   lcd.setCursor(0, 1);
-   lcd.print("dinask.eu");
+   lcd.begin (16, 2);
+   lcd.print ("Dummy Load ");
+   lcd.print (VERSION);
+   lcd.setCursor (0, 1);
+   lcd.print ("dinask.eu");
    delay (2000);
 } // setup()
 
