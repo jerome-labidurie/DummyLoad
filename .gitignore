@@ -30,3 +30,14 @@
 
 # Debug files
 *.dSYM/
+
+# backup
+*~
+*.bak
+*-bak
+*.bck
+_autosave-*
+
+### kdevelop ###
+*kdev4
+
