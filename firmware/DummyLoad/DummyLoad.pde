@@ -22,8 +22,8 @@
 #include <LiquidCrystal.h>
 
 /* hardware constants */
-#define BTN_PLUS 6
-#define BTN_MOINS 7
+#define BTN_PLUS 11
+#define BTN_MOINS 12
 #define LED 13
 #define PWM 9
 /** analog input pin for shunt resistor voltae read */
@@ -32,7 +32,8 @@
 #define SHUNT 10
 
 // initialize the library with the numbers of the interface pins
-LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+// rs, enable, d4, d5, d6, d7
+LiquidCrystal lcd(7, 6, 2, 3, 4, 5);
 
 /* software constants */
 // increment of pwm duty cycle
