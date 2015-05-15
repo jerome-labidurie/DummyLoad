@@ -26,6 +26,7 @@
 #define BTN_MOINS 11
 #define LED 13
 #define PWM 9
+#define FAN 10
 /** analog input pin for shunt resistor voltae read */
 #define IN_VOLT 0
 /** shunt resistor value R9 (ohm) */
@@ -186,6 +187,7 @@ void setup (void) {
    // initialize output pins
    pinMode (LED, OUTPUT);
    pinMode (PWM, OUTPUT);
+   pinMode (FAN, OUTPUT);
    // initialize input pins
    pinMode (BTN_PLUS, INPUT);
    pinMode (BTN_MOINS, INPUT);
@@ -200,6 +202,8 @@ void setup (void) {
    lcd.setCursor (0, 1);
    lcd.print ("dinask.eu");
    delay (2000);
+   // switch on fan
+   analogWrite (FAN, 255);
 } // setup()
 
 
