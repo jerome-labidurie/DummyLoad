@@ -22,8 +22,8 @@
 #include <LiquidCrystal.h>
 
 /* hardware constants */
-#define BTN_PLUS 11
-#define BTN_MOINS 12
+#define BTN_PLUS 12
+#define BTN_MOINS 11
 #define LED 13
 #define PWM 9
 /** analog input pin for shunt resistor voltae read */
@@ -64,7 +64,7 @@ uint8_t prevMoinsState = LOW; /**< previous button state */
 uint8_t currMoinsState = LOW; /**< current button state */
 
 long lastTemp = 0;   /**< last time internal temp as been read */
-double currTemperature = 0; /** current internal temperature */
+double currTemperature = 0; /**< current internal temperature */
 
 char line[LINE_LEN]; /**< serial command line */
 
@@ -271,7 +271,7 @@ void loop (void) {
             Serial.println (setAmp);
             Serial.print ("R: ");
             Serial.println (readAmp);
-            Serial.print ("DC: 0x");
+            Serial.print ("D: 0x");
             Serial.println (dutyCycle, HEX);
             break;
          case 'S': // set current
