@@ -67,6 +67,8 @@ uint8_t currMoinsState = LOW; /**< current button state */
 long lastTemp = 0;   /**< last time internal temp as been read */
 double currTemperature = 0; /**< current internal temperature */
 
+uint8_t fanSpeed = 255; /**< fan speed 0-255 */
+
 char line[LINE_LEN]; /**< serial command line */
 
 /****************************************************************************/
@@ -203,7 +205,7 @@ void setup (void) {
    lcd.print ("dinask.eu");
    delay (2000);
    // switch on fan
-   analogWrite (FAN, 255);
+   analogWrite (FAN, fanSpeed);
 } // setup()
 
 
@@ -277,6 +279,8 @@ void loop (void) {
             Serial.println (readAmp);
             Serial.print ("D: 0x");
             Serial.println (dutyCycle, HEX);
+            Serial.print ("F: ");
+            Serial.println (fanSpeed);
             break;
          case 'S': // set current
          case 's':
@@ -294,14 +298,19 @@ void loop (void) {
             Serial.print ("T: ");
             Serial.println (currTemperature);
             break;
+         case 'F': // fan speed
+         case 'f':
+            fanSpeed = atoi((char*) &line[2]);
+            break;
          case 'H': // help
          case '?':
          case 'h':
             Serial.println ("help:");
-            Serial.println (" D: display actual values (mA) & dutyCycle");
+            Serial.println (" D: display actual values (mA), dutyCycle, fan");
             Serial.println (" S xxxx: set current value (mA)");
             Serial.println (" +,-: push button");
             Serial.println (" T: display internal temperature");
+            Serial.println (" F xxxx: set fan speed");
             Serial.println (" H,?: show help");
             break;
          default:
@@ -315,6 +324,9 @@ void loop (void) {
       lastTemp = millis();
       currTemperature = getTemp();
    }
+
+   /* set fan speed */
+   analogWrite (FAN, fanSpeed);
 
    /* set current value */
    analogWrite(PWM, dutyCycle);
