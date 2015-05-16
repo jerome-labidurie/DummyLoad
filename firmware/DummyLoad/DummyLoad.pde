@@ -22,8 +22,8 @@
 #include <LiquidCrystal.h>
 
 /* hardware constants */
-#define BTN_PLUS 12
-#define BTN_MOINS 11
+#define BTN_PLUS 11
+#define BTN_MOINS 12
 #define LED 13
 #define PWM 9
 #define FAN 10
