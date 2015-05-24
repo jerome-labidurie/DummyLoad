@@ -49,6 +49,8 @@ LiquidCrystal lcd(7, 6, 2, 3, 4, 5);
 #define LINE_LEN 20
 // timer to get new internal temperature (ms)
 #define TEMP_TIMER 5000
+// timer to get new read amp value
+#define AMP_TIMER 100
 
 /* global variables */
 uint8_t  dutyCycle = 0; /**< PWM duty cycle 0->0xFF */
@@ -56,6 +58,7 @@ uint16_t setAmp = 0;    /**< current set value (mA) */
 uint16_t readAmp = 0;   /**< current read value (mA) */
 uint16_t tReadAmp[AVER_LENGTH]; /**< averaging array of currebnt read values */
 uint8_t itReadAmp = 0;          /**< actual index in previous array */
+long lastReadAmp = 0;         /**< last time  readAmp has changed */
 
 long lastPlusTime = 0;        /**< last time plus btn was pressed */
 uint8_t prevPlusState = LOW;  /**< previous button state */
@@ -67,7 +70,7 @@ uint8_t currMoinsState = LOW; /**< current button state */
 long lastTemp = 0;   /**< last time internal temp as been read */
 double currTemperature = 0; /**< current internal temperature */
 
-uint8_t fanSpeed = 255; /**< fan speed 0-255 */
+uint8_t fanSpeed = 128; /**< fan speed 0-255 */
 
 char line[LINE_LEN]; /**< serial command line */
 
@@ -213,6 +216,7 @@ void setup (void) {
  */
 void loop (void) {
    uint16_t tmp = 0;
+   uint8_t refresh = 0;
 
    /* check plus btn press */
    tmp = digitalRead(BTN_PLUS);
@@ -226,6 +230,7 @@ void loop (void) {
          currPlusState = tmp;
          if (currPlusState == HIGH) {
             incDC();
+            refresh = 1;
          } // if (currPlusState == HIGH) {
       } else {
          if ( (millis() - lastPlusTime) > (REPEAT_TIMER * DEBOUNCE_DELAY) ) {
@@ -233,6 +238,7 @@ void loop (void) {
             if (currPlusState == HIGH) {
                // new btn press event !
                incDC();
+               refresh = 1;
             } // if (currPlusState == HIGH) {
          }
       }
@@ -251,6 +257,7 @@ void loop (void) {
          currMoinsState = tmp;
          if (currMoinsState == HIGH) {
             decDC();
+            refresh = 1;
          } // if (currMoinsState == HIGH) {
       } else {
          if ( (millis() - lastMoinsTime) > (REPEAT_TIMER * DEBOUNCE_DELAY) ) {
@@ -258,6 +265,7 @@ void loop (void) {
             if (currMoinsState == HIGH) {
                // new btn press event !
                decDC();
+               refresh = 1;
             } // if (currMoinsState == HIGH) {
          }
       } // else
@@ -317,12 +325,14 @@ void loop (void) {
             Serial.print ("E: unknown command: ");
             Serial.println ((char)line[0]);
       }//switch
+      refresh = 1;
    } // Serial.available()
 
    /* read internal temperature if needed */
    if (millis() > (lastTemp + TEMP_TIMER) ) {
       lastTemp = millis();
       currTemperature = getTemp();
+      refresh = 1;
    }
 
    /* set fan speed */
@@ -331,12 +341,22 @@ void loop (void) {
    /* set current value */
    analogWrite(PWM, dutyCycle);
    setAmp = map (dutyCycle, 0, 0xFF, 0, 10000 / SHUNT);
+
    /* read actual current value */
-   tmp = analogRead (IN_VOLT);
-   addReadAmp ( map (tmp, 0, 1023, 0, 10000 / SHUNT) );
-   readAmp = getReadAmp();
+   if (millis() > (lastReadAmp + AMP_TIMER)) {
+      lastReadAmp = millis();
+      tmp = analogRead (IN_VOLT);
+      addReadAmp ( map (tmp, 0, 1023, 0, 10000 / SHUNT) );
+      tmp = getReadAmp();
+      if (readAmp != tmp) {
+         readAmp = tmp;
+         refresh = 1;
+      }
+   }
    /* display */
-   printScreen();
+   if (refresh == 1) {
+      printScreen();
+   }
 
    delay(25);
 } // loop()
