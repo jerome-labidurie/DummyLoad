@@ -729,7 +729,7 @@ PWM conversion
 Text Notes 9450 2800 0    60   ~ 0
 25W
 Text Notes 8600 2500 0    60   Italic 0
-Comparator
+Follower
 Text Notes 3800 4850 0    60   Italic 0
 Constant Current Load
 $Comp

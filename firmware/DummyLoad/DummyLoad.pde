@@ -2,6 +2,8 @@
  *
  * Firmware for an electronic constant current dummy load
  *
+ * http://dinask.eu/hardware/dummy-load/
+ *
  * Copyright (C) 2015 Jérôme Labidurie
  * This file is part of DummyLoad.
  * DummyLoad is free software: you can redistribute it and/or modify
